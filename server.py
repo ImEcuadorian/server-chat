@@ -3,6 +3,21 @@ import threading
 
 from serverclient import ServerClient
 
+def receive_data(conn):
+    try:
+        data = conn.recv(1024).decode().strip()
+        return data if data else None
+    except socket.error:
+        return None
+
+
+def send_data(conn, message):
+    try:
+        conn.sendall((message + "\n").encode())
+    except socket.error:
+        pass
+
+
 class Server:
     def __init__(self, ip, port):
         self.ip = ip
@@ -24,8 +39,8 @@ class Server:
             conn, addr = self.server_socket.accept()
             print(f"New connection from {addr}")
 
-            self.send_data(conn, "Welcome to the chat server!\nEnter your name: ")
-            name = self.receive_data(conn).strip()
+            send_data(conn, "Welcome to the chat server!\nEnter your name: ")
+            name = receive_data(conn).strip()
 
             if not name:
                 conn.close()
@@ -40,7 +55,7 @@ class Server:
 
     def handle_client(self, client):
         while True:
-            message = self.receive_data(client.conn)
+            message = receive_data(client.conn)
             if message is None or message.lower() == "exit":
                 print(f"{client.name} has left the chat.")
                 self.broadcast(f"{client.name} has left the chat.", client)
@@ -53,20 +68,8 @@ class Server:
     def broadcast(self, message, sender_client):
         for client in self.clients:
             if client != sender_client:
-                self.send_data(client.conn, message)
+                send_data(client.conn, message)
 
-    def receive_data(self, conn):
-        try:
-            data = conn.recv(1024).decode().strip()
-            return data if data else None
-        except socket.error:
-            return None
-
-    def send_data(self, conn, message):
-        try:
-            conn.sendall((message + "\n").encode())
-        except socket.error:
-            pass
 
 if __name__ == "__main__":
     server = Server("127.0.0.1", 8080)  # Cambié el puerto a 8080 por ser más accesible

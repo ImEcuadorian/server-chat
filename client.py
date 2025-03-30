@@ -3,16 +3,16 @@ import threading
 
 class Client:
     def __init__(self, ip_server, port_server):
-        self.ipServer = ip_server
-        self.portServer = port_server
+        self.ip_server = ip_server
+        self.port_server = port_server
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connected = False  # Flag para verificar si está conectado
 
     def connect(self):
         """Intenta conectar con el servidor."""
         try:
-            self.client_socket.connect((self.ipServer, self.portServer))
-            print(f"✅ Connected to server at {self.ipServer}:{self.portServer}")
+            self.client_socket.connect((self.ip_server, self.port_server))
+            print(f"✅ Connected to server at {self.ip_server}:{self.port_server}")
             self.connected = True
         except socket.error as e:
             print(f"❌ Error connecting to server: {e}")
