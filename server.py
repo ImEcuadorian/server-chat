@@ -3,45 +3,52 @@ import threading
 
 from serverclient import ServerClient
 
-
 class Server:
-
     def __init__(self, ip, port):
         self.ip = ip
         self.port = port
         self.clients = []
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    def connect(self):
-        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    def start(self):
         try:
-            server_socket.bind((self.ip, self.port))
+            self.server_socket.bind((self.ip, self.port))
+            self.server_socket.listen(5)
             print(f"Server listening on {self.ip}:{self.port}")
         except socket.error as e:
             print(f"Error binding server: {e}")
-            return None
+            return
 
-        server_socket.listen(5)
         while True:
-            connection, addr = server_socket.accept()
-            print(f"Connection from {addr}")
-            self.send_data(connection, "Welcome to the server!")
-            self.send_data(connection, "Type 'exit' to disconnect.")
-            self.send_data(connection, "Type your name:")
-            name = self.receive_data(connection).decode()
-            client = ServerClient(name, connection)
+            conn, addr = self.server_socket.accept()
+            print(f"New connection from {addr}")
+
+            self.send_data(conn, "Welcome to the chat server!\nEnter your name: ")
+            name = self.receive_data(conn).strip()
+
+            if not name:
+                conn.close()
+                continue
+
+            client = ServerClient(name, conn, addr)
             self.clients.append(client)
-            client_thread = threading.Thread(target=self.handle_client, args=(connection,))
-            client_thread.start()
+            print(f"{name} has joined the chat.")
+            self.broadcast(f"{name} has joined the chat.", client)
+
+            threading.Thread(target=self.handle_client, args=(client,)).start()
 
     def handle_client(self, client):
         while True:
-            data = self.receive_data(client.conn)
-            if data is None or data.decode() == "exit":
+            message = self.receive_data(client.conn)
+            if message is None or message.lower() == "exit":
+                print(f"{client.name} has left the chat.")
+                self.broadcast(f"{client.name} has left the chat.", client)
                 self.clients.remove(client)
+                client.conn.close()
                 break
-            self.broadcast(f"{client.name}: {data.decode()}", client)
-        client.conn.close()
+
+            self.broadcast(f"{client.name}: {message}", client)
 
     def broadcast(self, message, sender_client):
         for client in self.clients:
@@ -50,18 +57,17 @@ class Server:
 
     def receive_data(self, conn):
         try:
-            return conn.recv(1024)
-        except socket.error as e:
-            conn.close()
+            data = conn.recv(1024).decode().strip()
+            return data if data else None
+        except socket.error:
             return None
 
-    def send_data(self, conn, data):
+    def send_data(self, conn, message):
         try:
-            conn.sendall(data)
-        except socket.error as e:
-            conn.close()
-
+            conn.sendall((message + "\n").encode())
+        except socket.error:
+            pass
 
 if __name__ == "__main__":
-    server = Server("172.17.42.153", 80)
-    server.connect()
+    server = Server("127.0.0.1", 8080)  # Cambié el puerto a 8080 por ser más accesible
+    server.start()
