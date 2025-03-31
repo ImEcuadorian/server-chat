@@ -72,5 +72,5 @@ class Server:
 
 
 if __name__ == "__main__":
-    server = Server("127.0.0.1", 8080)  # Cambié el puerto a 8080 por ser más accesible
+    server = Server("172.17.42.153", 8080)
     server.start()

@@ -64,5 +64,5 @@ class Client:
             self.client_socket.close()
 
 if __name__ == "__main__":
-    client = Client("127.0.0.1", 8080)  # Asegúrate de que el servidor esté en esta IP/puerto
+    client = Client("172.17.42.153", 8080)  # Asegúrate de que el servidor esté en esta IP/puerto
     client.start()
